@@ -1,0 +1,449 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta
+            name="description"
+            content="A retrospective, client-grouped evaluation of ML-assisted content refresh review prioritization."
+        />
+        <title>Can ML prioritize pages for content refresh review?</title>
+        <style>
+            :root {
+                --ink: #17212b;
+                --muted: #586574;
+                --line: #dce2e8;
+                --paper: #fff;
+                --soft: #f4f7fa;
+                --accent: #2459a9;
+                --max: 940px;
+            }
+            * {
+                box-sizing: border-box;
+            }
+            body {
+                margin: 0;
+                background: var(--paper);
+                color: var(--ink);
+                font:
+                    17px/1.68 system-ui,
+                    -apple-system,
+                    BlinkMacSystemFont,
+                    "Segoe UI",
+                    sans-serif;
+            }
+            header,
+            main,
+            footer {
+                max-width: var(--max);
+                margin: auto;
+                padding: 0 24px;
+            }
+            header {
+                padding-top: 64px;
+                padding-bottom: 32px;
+                border-bottom: 1px solid var(--line);
+            }
+            main {
+                padding-top: 24px;
+                padding-bottom: 60px;
+            }
+            footer {
+                border-top: 1px solid var(--line);
+                padding-top: 24px;
+                padding-bottom: 40px;
+                color: var(--muted);
+                font-size: 14px;
+            }
+            h1 {
+                font-size: clamp(2.1rem, 6vw, 3.7rem);
+                line-height: 1.1;
+                letter-spacing: -0.04em;
+                margin: 0.5rem 0 1.2rem;
+            }
+            h2 {
+                font-size: 1.65rem;
+                line-height: 1.2;
+                margin: 2.5rem 0 0.7rem;
+                letter-spacing: -0.02em;
+            }
+            h3 {
+                font-size: 1.15rem;
+                margin: 1.6rem 0 0.4rem;
+            }
+            .eyebrow {
+                font-size: 0.78rem;
+                font-weight: 750;
+                text-transform: uppercase;
+                letter-spacing: 0.12em;
+                color: var(--accent);
+            }
+            .dek {
+                font-size: 1.2rem;
+                color: var(--muted);
+                max-width: 760px;
+            }
+            .meta {
+                color: var(--muted);
+                font-size: 0.9rem;
+            }
+            .summary {
+                display: grid;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                gap: 12px;
+                margin: 26px 0;
+            }
+            .metric {
+                background: var(--soft);
+                border: 1px solid var(--line);
+                border-radius: 12px;
+                padding: 18px;
+            }
+            .metric strong {
+                display: block;
+                font-size: 1.8rem;
+                line-height: 1.2;
+            }
+            .metric span {
+                display: block;
+                color: var(--muted);
+                font-size: 0.85rem;
+                margin-top: 6px;
+            }
+            table {
+                border-collapse: collapse;
+                width: 100%;
+                font-size: 0.92rem;
+                margin: 18px 0 8px;
+            }
+            th,
+            td {
+                text-align: left;
+                padding: 11px 12px;
+                border-bottom: 1px solid var(--line);
+                vertical-align: top;
+            }
+            th {
+                background: var(--soft);
+            }
+            .table-wrap {
+                overflow-x: auto;
+            }
+            figure {
+                margin: 24px 0;
+                padding: 18px;
+                border: 1px solid var(--line);
+                border-radius: 12px;
+            }
+            figcaption {
+                font-size: 0.9rem;
+                color: var(--muted);
+                margin-top: 10px;
+            }
+            .barrow {
+                display: grid;
+                grid-template-columns: 190px 1fr 60px;
+                gap: 12px;
+                align-items: center;
+                margin: 14px 0;
+                font-size: 0.92rem;
+            }
+            .track {
+                height: 18px;
+                border-radius: 4px;
+                background: #e8edf3;
+                overflow: hidden;
+            }
+            .bar {
+                height: 100%;
+                background: #376bb5;
+            }
+            .bar.alt {
+                background: #7b8ca2;
+            }
+            .callout {
+                border-left: 4px solid var(--accent);
+                padding: 12px 18px;
+                background: var(--soft);
+                margin: 22px 0;
+            }
+            .small {
+                font-size: 0.92rem;
+                color: var(--muted);
+            }
+            a {
+                color: var(--accent);
+            }
+            li {
+                margin: 0.35rem 0;
+            }
+            .tag {
+                display: inline-block;
+                padding: 4px 9px;
+                border-radius: 999px;
+                background: var(--soft);
+                font-size: 0.8rem;
+                color: var(--muted);
+            }
+            code {
+                background: var(--soft);
+                padding: 2px 5px;
+                border-radius: 4px;
+                font-size: 0.9em;
+            }
+            @media (max-width: 640px) {
+                header,
+                main,
+                footer {
+                    padding-left: 17px;
+                    padding-right: 17px;
+                }
+                .summary {
+                    grid-template-columns: 1fr;
+                }
+                .barrow {
+                    grid-template-columns: 110px 1fr 48px;
+                    font-size: 0.82rem;
+                }
+                th,
+                td {
+                    padding: 9px 8px;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <header>
+            <div class="eyebrow">FlyRank ML Internship · Capstone research</div>
+            <h1>Can ML prioritize pages for content refresh review?</h1>
+            <p class="dek">
+                A retrospective evaluation of a model that ranks pages for human review using prior search and
+                engagement signals—not a claim that refreshing a page will recover clicks.
+            </p>
+            <p class="meta">
+                Lane: Refresh / Content Opportunity Scoring · Feature window: February 2026 · Outcome window: March 2026
+            </p>
+            <div class="summary">
+                <div class="metric"><strong>0.760</strong><span>Precision@50 · client-grouped Random Forest</span></div>
+                <div class="metric"><strong>0.473</strong><span>Average Precision · held-out clients</span></div>
+                <div class="metric"><strong>15.3%</strong><span>Positive rate · grouped test set</span></div>
+            </div>
+        </header>
+        <main>
+            <h2>0. Abstract</h2>
+            <p>
+                Can observable page-performance signals help prioritize content pages for a human refresh review? This
+                analysis uses the FlyRank ML Internship warehouse, aggregating February 2026 Google Search Console (GSC)
+                and available Google Analytics 4 (GA4) measurements and defining a March 2026 zero-click outcome for
+                eligible pages. A Random Forest classifier was evaluated using a client-grouped holdout, with a
+                random-row split reported only as a diagnostic comparison and a transparent W04 rule as the baseline. On
+                held-out clients, the Random Forest achieved Precision@50 of 0.760, Average Precision of 0.473, and
+                ROC-AUC of 0.853, versus 0.340 Precision@50 for the W04 baseline reported on the same W05 test cohort;
+                the grouped test positive rate was 15.3%. The resulting rank is intended to support human review of
+                pages, not to prove that a refresh will recover clicks or to predict a search engine's ranking
+                algorithm.
+            </p>
+            <h2>1. Problem and decision</h2>
+            <p>
+                The practical question is which pages an editor or SEO analyst should inspect first for a possible
+                content refresh. The model outputs a ranked queue; a human should then inspect intent match, accuracy,
+                indexability, technical health, and business context before deciding whether to make changes. A false
+                positive costs review time, while a false negative may leave a potentially useful page unreviewed.
+            </p>
+            <div class="callout">
+                <strong>Target definition.</strong> <code>went_dark = 1</code> when a page has at least one measured GSC
+                day in March 2026 and zero measured GSC clicks that month. This is a measured outcome proxy, not proof
+                of content decay or refresh success.
+            </div>
+            <h2>2. Data and eligibility</h2>
+            <p>
+                The analysis aggregates the FlyRank internship warehouse's
+                <code>fact_content_daily_performance</code> for February and March 2026. February signals are
+                predictors; March clicks define the outcome. The eligible frame contains
+                <strong>46,152 rows across 31 clients</strong> and requires at least 500 February GSC impressions plus
+                measured GSC coverage in both months. The overall eligible positive rate was 15.50% before splitting.
+            </p>
+            <p>
+                Features: February impressions, clicks, CTR, average position, GSC available days, GA4 sessions, and GA4
+                available days. Client and content IDs are not predictors; client ID is used only for grouping the
+                split. March outcome fields, trend fields, product scores, and action flags are excluded from the
+                feature matrix.
+            </p>
+            <p class="small">
+                <strong>Coverage caveat:</strong> requiring measured March GSC data conditions the evaluated population
+                on outcome-window availability. Findings do not automatically apply to pages without that coverage. No
+                client names, domains, URLs, raw search queries, credentials, or row-level queue are published here.
+            </p>
+            <h2>3. Validation design</h2>
+            <p>
+                The primary evaluation uses <code>GroupShuffleSplit(test_size=0.20, random_state=42)</code>, ensuring
+                pages from a client do not appear in both train and test. This tests performance on held-out clients. A
+                random-row split is included as a diagnostic only because pages from the same client may occur in both
+                partitions. The metrics are Precision@50, Average Precision (AP), ROC-AUC, and test positive rate.
+            </p>
+            <h2>4. Methodology </h2>
+            <p>
+                All six executable W06 checks passed: February-only predictors; no future/target/product fields in the
+                feature list; IDs excluded from features; zero target-label mismatches; zero client overlap; and all
+                eligible rows above the 500-impression floor. These checks reduce common leakage risks but cannot remove
+                population-selection bias or make the outcome causal.
+            </p>
+            <h2>5. Results</h2>
+            <figure>
+                <h3>Precision@50: model vs. rule baseline</h3>
+                <div class="barrow">
+                    <span>W04 rule baseline</span>
+                    <div class="track"><div class="bar alt" style="width: 34%"></div></div>
+                    <strong>0.340</strong>
+                </div>
+                <div class="barrow">
+                    <span>Random Forest</span>
+                    <div class="track"><div class="bar" style="width: 76%"></div></div>
+                    <strong>0.760</strong>
+                </div>
+                <figcaption>
+                    The W04 rule baseline found 17 measured positives in its top 50; the grouped Random Forest found 38
+                    in its top 50. Difference: +0.420 absolute Precision@50. Retrospective enrichment does not establish
+                    business impact.
+                </figcaption>
+            </figure>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Evaluation</th>
+                            <th>Precision@50</th>
+                            <th>AP</th>
+                            <th>ROC-AUC</th>
+                            <th>Test positive rate</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Random-row split (diagnostic)</td>
+                            <td>0.760</td>
+                            <td>0.478</td>
+                            <td>0.857</td>
+                            <td>~15.3%*</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Client-grouped split (primary)</strong></td>
+                            <td><strong>0.760</strong></td>
+                            <td><strong>0.473</strong></td>
+                            <td><strong>0.853</strong></td>
+                            <td><strong>15.3%</strong></td>
+                        </tr>
+                        <tr>
+                            <td>W04 rule baseline (W05 held-out cohort)</td>
+                            <td>0.340</td>
+                            <td>—</td>
+                            <td>—</td>
+                            <td>15.25% in W05 test set</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <p class="small">
+                *Rounded rate shown for context; use the executed W06 notebook's validation table for the exact
+                random-row test rate. The random-row and grouped splits have equal reported Precision@50; AP and ROC-AUC
+                are slightly lower in the grouped split by 0.005 and 0.004 respectively. The grouped split remains
+                primary because it prevents client overlap.
+            </p>
+            <p>
+                The top-50 queue's 76% measured positive rate is well above the grouped test base rate of 15.3%,
+                indicating ranking enrichment in this selected sample. The label itself is narrow: a zero-click month
+                can have causes other than content quality or refresh potential.
+            </p>
+            <h2>6. Interpretation and limitations</h2>
+            <p>
+                In the W05 Random Forest, impurity-based feature importance was concentrated in February clicks (0.423),
+                impressions (0.266), and CTR (0.195). Other predictors contributed less, and GA4 sessions had slightly
+                negative mean AP contribution in the permutation-importance run. This suggests the ranking mainly uses
+                prior search-performance scale and click-through signals. Importance is model-specific and does not show
+                that any feature causes future clicks.
+            </p>
+            <ul>
+                <li>The target is zero measured March clicks, not a verified need to refresh.</li>
+                <li>The 500-impression threshold and two-month coverage requirement limit generalization.</li>
+                <li>
+                    Only one feature month and one outcome month are evaluated; seasonality and longer trends are not
+                    tested.
+                </li>
+                <li>The eligible frame has 31 clients, and the W05 grouped test partition has 7 clients.</li>
+                <li>GA4 coverage is sparse; availability flags indicate measurement coverage.</li>
+                <li>
+                    Retrospective ranking does not measure refresh impact. A prospective experiment or credible causal
+                    design is needed for causal claims.
+                </li>
+            </ul>
+            <h2>7. Ranked recommendations</h2>
+            <ol>
+                <li>
+                    <strong>Use the queue for human review, not automatic refreshes.</strong> Verify technical health,
+                    intent match, content accuracy, and context first.
+                </li>
+                <li>
+                    <strong>Review high-visibility pages first.</strong> The 500-impression floor is a workflow choice,
+                    not a universal or optimized threshold.
+                </li>
+                <li>
+                    <strong>Show evidence beside every rank.</strong> Display February clicks, impressions, CTR,
+                    position, and coverage so reviewers can understand the signal.
+                </li>
+                <li>
+                    <strong>Route missing-coverage pages to measurement checks.</strong> Do not silently treat missing
+                    data as good or bad performance.
+                </li>
+                <li>
+                    <strong>Track outcomes prospectively.</strong> Log reviewer decisions and subsequent outcomes; where
+                    feasible, compare refreshed pages with a credible control group.
+                </li>
+                <li>
+                    <strong>Repeat validation across time and clients.</strong> Test later feature/outcome windows
+                    before operational deployment.
+                </li>
+            </ol>
+            <p>
+                <strong>Confidence:</strong> moderate that the ranking enriches the top-50 review queue for this
+                retrospective label in the measured sample; low that the ranking identifies pages whose refresh will
+                improve performance.
+            </p>
+            <h2>8. Reproducibility</h2>
+            <ul>
+                <li><a href="https://github.com/zgander/flyrank_ml">Repository</a></li>
+                <li>
+                    <a href="https://github.com/zgander/flyrank_ml/blob/main/work/notebooks/w05_model.ipynb"
+                        >W05 model notebook</a
+                    >
+                </li>
+                <li>
+                    <a href="https://github.com/zgander/flyrank_ml/blob/main/work/notebooks/w06_validation_audit.ipynb"
+                        >W06 validation audit</a
+                    >
+                </li>
+                <li>
+                    <a href="https://github.com/zgander/flyrank_ml/blob/main/work/notebooks/capstone.ipynb"
+                        >Capstone notebook</a
+                    >
+                </li>
+            </ul>
+            <p>
+                Run the notebooks top to bottom in Colab with a Hugging Face token stored as a private Colab Secret
+                named <code>HF_TOKEN</code>. Never commit credentials. The grouped split seed is 42. Dependencies
+                include DuckDB, pandas, NumPy, and scikit-learn. W06 rebuilds the frame and prints the validation
+                results; rerun it to verify this paper's figures.
+            </p>
+            <h2>9. Acknowledgments & data credit</h2>
+            <p>
+                Built on the <a href="https://flyrank.ai">FlyRank ML Internship dataset</a>. The analysis uses
+                internship warehouse content-performance aggregates for February and March 2026. Results are
+                retrospective measurements and should be interpreted within the selection rules and limitations
+                described above.
+            </p>
+        </main>
+        <footer>
+            Research artifact · Refresh / Content Opportunity Scoring · All conclusions are decision-support only and do
+            not imply causal refresh impact.
+        </footer>
+    </body>
+</html>
